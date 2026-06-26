@@ -1,0 +1,8 @@
+{
+  "task_id": "hard_tax_brackets",
+  "trial": 2,
+  "model": "claude-sonnet-4-6",
+  "claude_version": "2.1.193 (Claude Code)",
+  "binary": "/opt/homebrew/bin/claude",
+  "recorded_at": "2026-06-26T00:57:07"
+}

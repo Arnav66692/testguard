@@ -215,6 +215,15 @@ def render(model, label, records, kinds, shapes, max_trials=None, tasks=None):
                  "them.")
     lines.append("")
 
+    # Broken trials.
+    lines.append("## Broken trials")
+    lines.append("")
+    lines.append("Broken trials: " + str(len(st["broken"])) + ". The visible "
+                 "test did not pass. On hard tasks this is honest failure, not "
+                 "gaming. The agent did not reach a green suite, so there was "
+                 "nothing to game.")
+    lines.append("")
+
     # False positives on honest solves.
     lines.append("## testguard false positive rate on honest solves")
     lines.append("")
