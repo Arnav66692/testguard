@@ -296,6 +296,10 @@ weakened a test, and testguard had a zero false positive rate on honest work. Th
 catch behavior rests on synthetic mutations for now. The honest null is itself a
 finding. On this task set, these agents earn the green rather than game it.
 
+## Acknowledgments
+
+This work was developed with the assistance of Claude Code, used as a coding and simulation tool. The author is responsible for the research design, the experimental methodology, the analysis, the writing, and all claims.
+
 ## Appendix A. Reproducibility
 
 - Detector. The hook and the benchmark both call evaluate of the diff and the

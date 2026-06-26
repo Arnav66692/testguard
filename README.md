@@ -131,3 +131,7 @@ and the analysis. See `bench/README.md`. The short paper is in `paper/draft.md`.
 ## License
 
 MIT. See `LICENSE`.
+
+## Acknowledgments
+
+Built with the assistance of Claude Code. Research design, benchmark methodology, and analysis are the author's own.
