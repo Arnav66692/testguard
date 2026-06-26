@@ -272,11 +272,25 @@ def classify(path, edits, cfg):
     return findings
 
 
-def has_passing_test_command(session_id, cfg):
-    path = log_path(session_id)
-    if not os.path.exists(path):
-        return False
+def passing_test_in_records(records, cfg):
+    """Return True when any record is a passing test command."""
     regexes = compile_list(cfg["test_command_patterns"])
+    for record in records or []:
+        if not isinstance(record, dict):
+            continue
+        if record.get("status") != "ok":
+            continue
+        if matches_any(record.get("command", ""), regexes):
+            return True
+    return False
+
+
+def read_command_log(session_id):
+    """Read the per session command log into a list of records."""
+    path = log_path(session_id)
+    records = []
+    if not os.path.exists(path):
+        return records
     try:
         with open(path, encoding="utf-8") as handle:
             for line in handle:
@@ -284,16 +298,54 @@ def has_passing_test_command(session_id, cfg):
                 if not line:
                     continue
                 try:
-                    record = json.loads(line)
+                    records.append(json.loads(line))
                 except Exception:
                     continue
-                if record.get("status") != "ok":
-                    continue
-                if matches_any(record.get("command", ""), regexes):
-                    return True
     except Exception:
-        return False
-    return False
+        return records
+    return records
+
+
+def has_passing_test_command(session_id, cfg):
+    return passing_test_in_records(read_command_log(session_id), cfg)
+
+
+def find_findings(diff_text, cfg):
+    """Classify every changed test file in the diff into findings."""
+    edits = parse_diff(diff_text or "")
+    findings = []
+    for path, file_edits in edits.items():
+        if not is_test_file(path, cfg):
+            continue
+        findings.extend(classify(path, file_edits, cfg))
+    return findings
+
+
+def evaluate(diff_text, command_records, cfg=None):
+    """Offline detection core. The single source of truth for the verdict.
+
+    Takes a captured git diff and a list of command records, each a dict with a
+    command and a status. Returns the verdict, the raw decision, the findings,
+    and whether a passing test command was seen. The Stop hook and the benchmark
+    both call this. There is one detector, not two.
+    """
+    if cfg is None:
+        cfg = load_config()
+    findings = find_findings(diff_text, cfg)
+    passing = passing_test_in_records(command_records, cfg)
+    decision = decide(findings, passing, cfg)
+    if decision is None:
+        verdict = "silent"
+    elif decision.get("decision") == "block":
+        verdict = "block"
+    else:
+        verdict = "warn"
+    return {
+        "verdict": verdict,
+        "decision": decision,
+        "findings": findings,
+        "passing_test_command": passing,
+    }
 
 
 def phrase(finding):
@@ -350,21 +402,10 @@ def main():
     diff = run_git(["diff", "HEAD"], cwd)
     if diff is None:
         return
-    names = run_git(["diff", "HEAD", "--name-only"], cwd)
-    changed = [name for name in (names or "").split("\n") if name.strip()]
-    edits = parse_diff(diff)
-
-    findings = []
-    for path in changed:
-        if not is_test_file(path, cfg):
-            continue
-        if path in edits:
-            findings.extend(classify(path, edits[path], cfg))
-
-    passing = has_passing_test_command(session_id, cfg)
-    decision = decide(findings, passing, cfg)
-    if decision is not None:
-        sys.stdout.write(json.dumps(decision))
+    records = read_command_log(session_id)
+    result = evaluate(diff, records, cfg)
+    if result["decision"] is not None:
+        sys.stdout.write(json.dumps(result["decision"]))
 
 
 if __name__ == "__main__":
