@@ -35,8 +35,16 @@ def model_slug(model):
     return re.sub(r"[^A-Za-z0-9_.-]", "-", str(model)) or "model"
 
 
+# The Sonnet pilot predates model namespacing. Its committed records live in the
+# un-namespaced data root, so that root is its namespace. New Sonnet trials
+# extend the pilot there in place. The committed records are never moved.
+LEGACY_DATA_MODELS = {"claude-sonnet-4-6"}
+
+
 def model_data_dir(model):
     """The data directory for one model. Keeps model runs separate."""
+    if model in LEGACY_DATA_MODELS:
+        return DATA_DIR
     return DATA_DIR / model_slug(model)
 
 

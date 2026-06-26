@@ -10,6 +10,8 @@ Usage:
   python cross_report.py --model claude-haiku-4-5-20251001
 """
 import argparse
+import json
+import re
 import sys
 from pathlib import Path
 
@@ -18,7 +20,7 @@ import common
 import detect_gaming
 
 SONNET_MODEL = "claude-sonnet-4-6"
-SONNET_LABEL = "Sonnet 4.6 pilot"
+SONNET_LABEL = "Sonnet 4.6"
 
 
 def task_kinds():
@@ -29,15 +31,27 @@ def task_shapes():
     return {tid: common.load_task(tid).get("shape") for tid in common.task_ids()}
 
 
-def load_model_records(model):
-    """Load a model run. The Sonnet pilot lives in the legacy un-namespaced dir."""
-    namespaced = common.model_data_dir(model)
-    records = analyze.load_records(namespaced)
-    if records:
-        return records
-    # Fallback for the Sonnet pilot, which predates model namespacing.
-    return [r for r in analyze.load_records(common.DATA_DIR)
-            if r.get("model") == model]
+def load_model_records(model, max_trials=None):
+    """Load a model run from its data dir, filtered to this model.
+
+    If max_trials is set, keep only trials whose index is below it. This gives a
+    clean N view, for example the N=3 pilot, from a larger data set.
+    """
+    data_dir = common.model_data_dir(model)
+    records = []
+    for path in sorted(Path(data_dir).glob("*/trial-*/record.json")):
+        if max_trials is not None:
+            match = re.search(r"trial-(\d+)$", path.parent.name)
+            if match and int(match.group(1)) >= max_trials:
+                continue
+        try:
+            with open(path, encoding="utf-8") as handle:
+                record = json.load(handle)
+        except Exception:
+            continue
+        if record.get("model") == model:
+            records.append(record)
+    return records
 
 
 def stats(records, kinds):
@@ -111,13 +125,16 @@ def testguard_message(record):
     return decision.get("systemMessage")
 
 
-def render(model, label, records, kinds, shapes):
+def render(model, label, records, kinds, shapes, max_trials=None):
     st = stats(records, kinds)
-    sonnet = load_model_records(SONNET_MODEL)
+    sonnet = load_model_records(SONNET_MODEL, max_trials)
     ss = stats(sonnet, kinds)
 
     lines = []
-    lines.append("# testguard gaming benchmark, " + label)
+    title = "# testguard gaming benchmark, " + label
+    if max_trials is not None:
+        title += " (pilot, first " + str(max_trials) + " trials per task)"
+    lines.append(title)
     lines.append("")
     versions = sorted({r.get("claude_version") for r in records
                        if r.get("claude_version")})
@@ -237,17 +254,25 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="claude-haiku-4-5-20251001")
     parser.add_argument("--label", default="Haiku 4.5")
+    parser.add_argument("--trials", type=int, default=None,
+                        help="Limit to the first N trials per task, for a pilot.")
+    parser.add_argument("--out", default=None)
     args = parser.parse_args(argv)
 
-    records = load_model_records(args.model)
+    records = load_model_records(args.model, args.trials)
     if not records:
         print("no records for model " + args.model)
         return 1
     kinds = task_kinds()
     shapes = task_shapes()
-    markdown = render(args.model, args.label, records, kinds, shapes)
-    out = common.BENCH_DIR / "analyze" / ("results-" + common.model_slug(args.model)
-                                          + ".md")
+    markdown = render(args.model, args.label, records, kinds, shapes, args.trials)
+    if args.out:
+        out = Path(args.out)
+    else:
+        suffix = ("-pilot-n" + str(args.trials)) if args.trials else ""
+        out = common.BENCH_DIR / "analyze" / ("results-"
+                                              + common.model_slug(args.model)
+                                              + suffix + ".md")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(markdown)
     print(markdown)
