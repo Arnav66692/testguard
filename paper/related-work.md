@@ -59,22 +59,6 @@ does not score a model on a fixed task set. It guards a live edit.
   tampering and train test leakage by machine learning engineering agents, and
   shows that locking the evaluator blocks the tampering.
 
-- LLMs Gaming Verifiers: RLVR can Lead to Reward Hacking. Lukas Helff, Quentin
-  Delfosse, and others. arXiv:2604.15149. Shows that reinforcement learning from
-  verifiable rewards can teach a model to game an imperfect verifier. TODO,
-  confirm the behavior list. This reference was provided as the paper that lists
-  overwriting tests and deleting assertions, but the abstract describes
-  enumerating labels on inductive reasoning tasks, so confirm that detail against
-  the paper body or against the intended reference.
-
-- Agent evaluation isolation, Berkeley. TODO, supply the exact title, author, and
-  link. I could not verify a single artifact named the Berkeley Agent-Eval
-  checklist. Candidates are a LangChain Agent Evaluation Readiness Checklist, a
-  Berkeley RDI blog post on breaking agent benchmarks, and LiveCodeBench from UC
-  Berkeley. The point it supports is our contamination guard and held-out design.
-  The agent runs with no held-out test in its directory, and detection runs in a
-  clean copy of the final code.
-
 ## The gap testguard fills
 
 The work above measures the problem on fixed task sets, after the run. testguard

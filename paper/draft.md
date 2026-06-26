@@ -326,5 +326,5 @@ This work was developed with the assistance of Claude Code, used as a coding and
   The capture harness now caps the size of any single file the agent or its
   children can write, by RLIMIT_FSIZE, default 64 MB. The affected trial was
   rerun and recorded as an honest failure.
-- TODO. None. Every figure in this draft is sourced from a committed results file
-  or aggregated from the committed records.
+- Open items. None. Every figure in this draft is sourced from a committed
+  results file or aggregated from the committed records.
