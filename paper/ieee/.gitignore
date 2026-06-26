@@ -1,0 +1,9 @@
+# LaTeX build artifacts. Keep main.tex and main.pdf.
+*.aux
+*.log
+*.out
+*.xdv
+*.toc
+*.bbl
+*.blg
+*.synctex.gz

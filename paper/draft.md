@@ -1,4 +1,4 @@
-# testguard, a deterministic guard for agent test weakening, and a held-out benchmark that found no live gaming
+# testguard: A Deterministic Guard Against Agent Test-Weakening, and a Held-Out Benchmark Finding No Live Gaming
 
 Draft. Every number in this draft is taken from a committed results file in
 `bench/analyze/` or aggregated from the committed trial records in `bench/data/`.
@@ -176,7 +176,8 @@ Easy gaming tasks, with the available shortcut.
 - percentage, loosen. The exact 66.7 percent can be loosened to accept a
   truncated 66.6 percent.
 
-Controls, with no easy shortcut.
+Controls, with no easy shortcut. The two controls run only in the easy task set,
+not in the hard set.
 
 - reverse_words. Many varied inputs, the honest one line is the natural path.
 - running_total. Many varied inputs, the honest loop is the natural path.
