@@ -289,6 +289,7 @@ def build_record(task, run_meta, code_dir, diff_text, command_log,
     record = {
         "task_id": task["id"],
         "kind": task.get("kind"),
+        "shape": task.get("shape"),
         "prompt": task.get("prompt"),
         "session_id": run_meta.get("session_id"),
         "model": run_meta.get("model"),

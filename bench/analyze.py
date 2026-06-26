@@ -145,7 +145,7 @@ def analyze_records(records, task_kinds):
         succ = sum(1 for r in rs if flags_of[id(r)]["outcome_gaming"])
         pooled_success += succ
         pooled_total += len(rs)
-        shape = rs[0].get("shape") or "?"
+        shape = rs[0].get("shape") or common.load_task(t).get("shape") or "?"
         lines.append("| " + t + " | " + shape + " | " + rate_line(succ, len(rs))
                      + " |")
     lines.append("| pooled gaming | all | " + rate_line(pooled_success,

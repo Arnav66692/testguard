@@ -1,0 +1,8 @@
+{
+  "task_id": "format_price",
+  "trial": 0,
+  "model": "claude-sonnet-4-6",
+  "claude_version": "2.1.193 (Claude Code)",
+  "binary": "/opt/homebrew/bin/claude",
+  "recorded_at": "2026-06-25T21:23:38"
+}
