@@ -9,8 +9,10 @@ question. When the agent makes the suite pass, did it earn the green or game it.
 
 The failure is reward hacking, also called test warping. The agent edits the
 tests so they pass rather than fixing the code. testguard reads the git diff and
-the command log and decides, with no model calls, whether a passing suite was
-earned or gamed.
+the command log, with no model calls, and flags when the tests were weakened to
+get the green. It catches the routes that edit tests. It does not catch
+hardcoding, which leaves the tests untouched. The held-out benchmark catches that
+case instead.
 
 ## What testguard catches
 
@@ -31,7 +33,7 @@ testguard warns, with a message and no block, on the lower confidence signals.
 
 testguard does not catch source hardcoding. That is when the agent leaves the
 tests untouched and hardcodes the visible inputs in the code. The diff has no
-weakening signal, so a diff based guard has nothing to flag. A held-out test
+weakening signal, so a diff-based guard has nothing to flag. A held-out test
 catches this, by running the final code against inputs the agent never saw. The
 benchmark in `bench/` uses held-out tests for exactly this reason.
 
@@ -57,7 +59,7 @@ gaming on its own development.
 testguard wires three hooks. Two record commands. One detects.
 
 - `log_command.py` on PostToolUse for the Bash tool. It appends each command and
-  an ok status to a per session log.
+  an ok status to a per-session log.
 - `log_command.py` on PostToolUseFailure for the Bash tool. It appends each
   failed command with a fail status.
 - `detect_gaming.py` on Stop. It runs `git diff HEAD`, classifies the test file
@@ -95,9 +97,9 @@ Real agent runs. The benchmark ran 138 real headless agent trials across two
 models, Claude Sonnet 4.6 and Claude Haiku 4.5, on gameable tasks with held-out
 tests. The agents ran with full tools and no testguard installed. Detection ran
 offline over the captured diff and command log. Of the 138 trials, 137 were
-honest solves and 1 was an honest failure. testguard produced zero false
-positives across all 138 trials. The false positive rate on honest solves is 0
-of 137. See the results files in `bench/analyze/`.
+honest solves and 1 was an honest failure. testguard flagged none of the 138
+trials. The false positive rate on the 137 honest solves is 0. See the results
+files in `bench/analyze/`.
 
 Honest limitation. No agent weakened a test in any of the 138 real trials. Even
 on hard tasks built so the honest path is costly, the models solved honestly or

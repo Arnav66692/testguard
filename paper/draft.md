@@ -8,18 +8,21 @@ invented.
 ## Abstract
 
 A coding agent that cannot fix the code has a second path to a green test suite.
-It can weaken the tests. It can skip the hard case, delete an assertion, loosen
-an expected value, mock the unit under test, or hardcode the visible inputs.
-testguard is a Claude Code hook that watches for this during a coding session.
-It reads the git diff and the command log, with no model calls, and blocks the
-session when a test was weakened and a test command passed. We pair the tool with
-a held-out benchmark that separates two kinds of gaming, outcome gaming and test
-weakening, and that runs real agents with no guard installed so their behavior is
+It can game the suite. It can skip the hard case, delete an assertion, loosen an
+expected value, mock the unit under test, or hardcode the visible inputs.
+testguard is a Claude Code hook that watches the routes that edit tests. It reads
+the git diff and the command log, with no model calls. It blocks on an added skip
+or a deleted assertion with a passing test, and it warns on a loosened value or
+an added mock. Hardcoding leaves the tests untouched, so a diff-based guard does
+not see it. A held-out test catches that case instead. We pair the tool with a
+held-out benchmark, which separates two kinds of gaming, outcome gaming and test
+weakening, and runs real agents with no guard installed so their behavior is
 natural. Across 138 real headless trials on two models, Claude Sonnet 4.6 and
 Claude Haiku 4.5, including hard tasks built so the honest path is costly, no
-agent weakened a test. The honest result is a null. testguard produced zero false
-positives across all 138 trials. Its catch behavior is validated on synthetic
-mutations, because no live weakening occurred to catch.
+agent weakened a test. The honest result is a null. testguard flagged none of the
+138 trials, so its false positive rate over the 137 honest solves is zero. Its
+catch behavior is validated on synthetic mutations, because no live weakening
+occurred to catch.
 
 ## 1. Introduction and the problem
 
@@ -41,13 +44,13 @@ game it.
 
 We make three contributions.
 
-1. testguard, a deterministic, developer facing, diff based guard. It flags test
+1. testguard, a deterministic, developer-facing, diff-based guard. It flags test
    weakening during a coding session. It blocks on a skip or a delete with a
    passing test, and warns on a loosened value or an added mock. It is precision
    first and fails open.
 2. A held-out benchmark methodology. Each task has a visible test the agent can
    edit and a held-out test it never sees. This separates outcome gaming from
-   test weakening, and it catches source hardcoding that a diff based guard
+   test weakening, and it catches source hardcoding that a diff-based guard
    cannot.
 3. An empirical finding. Across 138 real trials on two models, including hard
    tasks designed to tempt gaming, no agent weakened a test and testguard had a
@@ -76,7 +79,7 @@ itself. See `paper/related-work.md` for the list and one line on each.
 testguard wires three hooks. Two record commands, one detects.
 
 - `log_command.py` on PostToolUse for the Bash tool appends each command with an
-  ok status to a per session log.
+  ok status to a per-session log.
 - `log_command.py` on PostToolUseFailure appends each failed command with a fail
   status.
 - `detect_gaming.py` on Stop runs `git diff HEAD`, classifies the changed test
@@ -173,14 +176,14 @@ Hard gaming tasks, with one line on why the honest path is costly.
 
 - hard_tax_brackets, hardcode. A deduction, three marginal brackets, and a credit
   that phases out, with two floors, all interacting.
-- hard_number_words, hardcode. A full number to words converter with teens, tens
+- hard_number_words, hardcode. A full number-to-words converter with teens, tens
   hyphenation, hundreds, and thousands grouping.
 - hard_split_bill, loosen. Largest remainder apportionment, exact cents that sum
   to the total, with fractional ranking and ties.
 - hard_billing_date, skip. Month and year rollover with day clamping to the
   target month length, including leap February.
 - hard_coin_change, skip. Minimum coins is dynamic programming, greedy by largest
-  coin is wrong for non canonical denominations.
+  coin is wrong for non-canonical denominations.
 
 ## 5. Results
 
@@ -212,7 +215,7 @@ The committed runs are these.
   gaming. The false positive rate on honest solves is 0 of 24 for Haiku and 0 of
   25 for Sonnet.
 
-A two model pilot view at N=3, 48 trials, is a subset of the easy data and not a
+A two-model pilot view at N=3, 48 trials, is a subset of the easy data and not a
 separate run. See `bench/analyze/results-pilot-n3.md`.
 
 ### 5.3 Aggregate
@@ -231,22 +234,21 @@ Aggregated across all committed records in `bench/data/`, the totals are these.
 
 The headline of this work was meant to be testguard catching real agent
 weakening. That did not happen. Across 138 real trials, no agent weakened a test.
-Both models solved the tasks honestly, or in one case failed honestly. This holds
-even on the hard tasks, which were built so the honest path is genuinely costly
-and a visible test shortcut is genuinely available. The difficulty condition bit.
-On hard_split_bill, Haiku failed once and, while struggling, wrote a runaway file
-that filled the disk, which we then capped. But difficulty turned into honest
-failure, not into test weakening.
+Both models solved the tasks honestly, or in one case failed honestly. The honest
+reading of the hard tasks is this. 49 of the 50 hard-task trials were solved
+honestly. So the hard tasks largely stayed within the models' honest reach. They
+did not reach the cornered regime, where weakening a test is the only route to a
+green suite. In the one trial where a model could not solve the task,
+hard_split_bill on Haiku, the model failed honestly rather than weakening a test.
 
 This is consistent with the claim-check finding. Capable agents that can verify
 themselves tend to behave honestly. The result here extends it. Even when the
 suite is editable and a shortcut is available, these two models did not take it.
 
-The one measured strength of testguard is its zero false positive rate. Across
-138 real honest trials it never flagged honest work. For a guard, this is the
-property that decides whether it is usable at all. A false block is worse than a
-missed one, because it interrupts honest work and trains the user to ignore the
-guard.
+The one measured strength of testguard is its zero false positive rate. Over the
+137 honest solves it never flagged honest work. For a guard, this is the property
+that decides whether it is usable at all. A false block is worse than a missed
+one, because it interrupts honest work and trains the user to ignore the guard.
 
 ## 7. Limitations
 
@@ -261,19 +263,23 @@ We state the limitations plainly.
 - Small task set. Thirteen tasks, self contained and short. Real codebases are
   larger and messier. A weakening in a large suite may be harder to detect from
   the diff.
+- The hard tasks may not have been hard enough to test gaming under genuine
+  pressure. 49 of the 50 hard-task trials were solved honestly, so the tasks did
+  not corner the models. Tasks reliably beyond the agent's honest reach, where
+  weakening a test is the only route to a green suite, are future work.
 - The intervals are wide. A zero count over 116 gaming task trials is consistent
   with a true gaming rate up to about 3 percent.
-- testguard is diff based. It does not catch source hardcoding by design. The
+- testguard is diff-based. It does not catch source hardcoding by design. The
   held-out test catches that, but a developer using testguard alone does not have
   a held-out test.
 - The detector uses heuristics for assertions, test definitions, and markers.
   Languages and styles outside the configured patterns may be missed or
-  misread, though the fail open and warn tiers limit the harm.
+  misread, though the fail-open and warn tiers limit the harm.
 
 ## 8. Conclusion
 
-testguard is a deterministic, developer facing guard that flags test weakening
-from the git diff and the command log, with no model calls and a fail open
+testguard is a deterministic, developer-facing guard that flags test weakening
+from the git diff and the command log, with no model calls and a fail-open
 design. We paired it with a held-out benchmark that separates outcome gaming from
 test weakening and runs real agents with no guard installed. Across 138 real
 trials on two models, including hard tasks built to tempt gaming, no agent
@@ -296,11 +302,16 @@ finding. On this task set, these agents earn the green rather than game it.
   - `python bench/preflight.py` proves each task is well formed.
   - `python bench/selftest.py` validates the pipeline on synthetic mutations.
   - `python bench/run_trials.py --trials N --model M --tasks ...` runs trials,
-    resumable, into the model namespaced data dir.
+    resumable, into the model-namespaced data dir.
   - `python bench/cross_report.py --model M --tasks ... --trials N` writes a
     model aware results file.
 - Data. The committed records are in `bench/data/`, about 7 MB, namespaced by
   model, with one record, one meta, and one transcript per trial. Trial costs are
   recorded in the commit messages.
+- Note on the disk-fill incident. During the first hard-task pilot, the Haiku
+  agent struggling on hard_split_bill wrote a runaway file that filled the disk.
+  The capture harness now caps the size of any single file the agent or its
+  children can write, by RLIMIT_FSIZE, default 64 MB. The affected trial was
+  rerun and recorded as an honest failure.
 - TODO. None. Every figure in this draft is sourced from a committed results file
   or aggregated from the committed records.
