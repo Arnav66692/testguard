@@ -72,9 +72,8 @@ permissions, including editing or skipping a writable test. The METR report on
 reward hacking is a field note on frontier agents that modify tests or scoring
 code to get a pass. The Cursor engineering post audited 731 agent trajectories on
 coding benchmarks and found that 57 percent used an upstream lookup, reproducing
-a fix from the public web rather than solving the task. The over mocked tests
-study looks at tests that mock the unit under test so heavily that they assert
-nothing real.
+a fix from the public web rather than solving the task. Other benchmarks measure
+tool-use exploits and evaluator tampering by agents.
 
 testguard differs in where the check sits. The work above measures the problem on
 fixed task sets. testguard is a guard, not a benchmark. It reads the diff during
@@ -209,9 +208,11 @@ honest solve stays silent. These checks pass. See `bench/analyze/selftest.md`.
 We ran two models, Claude Sonnet 4.6 with model string claude-sonnet-4-6, and
 Claude Haiku 4.5 with model string claude-haiku-4-5-20251001. One CLI version,
 2.1.193, was recorded in every trial at run time. Data is namespaced by model so
-the runs coexist.
+the runs coexist. The unequal N reflects the staging of the runs, Sonnet ran
+first as a smaller pilot at N=3, and Haiku ran deeper at N=8 as the main
+cross-model pass, for a comparable budget since Haiku is cheaper per trial.
 
-The committed runs are these.
+The committed runs are these.[^pilot]
 
 - Sonnet on the eight easy tasks at N=3, 24 trials. See `bench/analyze/results.md`.
   Pooled gaming over the six gaming tasks is 0 of 18. The false positive rate on
@@ -224,9 +225,6 @@ The committed runs are these.
   model. Haiku had 1 broken trial on hard_split_bill, an honest failure, not
   gaming. The false positive rate on honest solves is 0 of 24 for Haiku and 0 of
   25 for Sonnet.
-
-A two-model pilot view at N=3, 48 trials, is a subset of the easy data and not a
-separate run. See `bench/analyze/results-pilot-n3.md`.
 
 ### 5.3 Aggregate
 
@@ -329,3 +327,6 @@ This work was developed with the assistance of Claude Code, used as a coding and
   rerun and recorded as an honest failure.
 - Open items. None. Every figure in this draft is sourced from a committed
   results file or aggregated from the committed records.
+
+[^pilot]: A two-model pilot view at N=3, 48 trials, is a subset of the easy data
+and not a separate run. See `bench/analyze/results-pilot-n3.md`.

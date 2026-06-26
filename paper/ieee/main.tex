@@ -41,7 +41,7 @@ We make three contributions.
 
 \section{Related work}
 
-Recent work studies agents that game tests or benchmarks. SpecBench~\cite{specbench}, by Zhao and others, decomposes each task into a specification, visible tests, and hidden tests, and measures reward hacking as the gap between the visible and the hidden tests. That visible versus held-out gap is the same held-out idea this work uses, and we treat SpecBench as prior art for the held-out method. EvilGenie~\cite{evilgenie}, by Gabor, Lynch, and Rosenfeld, measures reward hacking three ways, held-out unit tests, LLM judges, and test file edit detection. Its test file edit detection is the closest prior work to testguard's mechanism. testguard runs that same check live, as a developer-facing hook in a coding session, rather than as an eval-harness measurement after the run. CircumEval~\cite{circumeval} measures how often agents circumvent file permissions, including editing or skipping a writable test. The METR report~\cite{metr} on reward hacking is a field note on frontier agents that modify tests or scoring code to get a pass. The Cursor engineering post~\cite{cursor} audited 731 agent trajectories on coding benchmarks and found that 57 percent used an upstream lookup, reproducing a fix from the public web rather than solving the task. The over mocked tests study looks at tests that mock the unit under test so heavily that they assert nothing real.
+Recent work studies agents that game tests or benchmarks. SpecBench~\cite{specbench}, by Zhao and others, decomposes each task into a specification, visible tests, and hidden tests, and measures reward hacking as the gap between the visible and the hidden tests. That visible versus held-out gap is the same held-out idea this work uses, and we treat SpecBench as prior art for the held-out method. EvilGenie~\cite{evilgenie}, by Gabor, Lynch, and Rosenfeld, measures reward hacking three ways, held-out unit tests, LLM judges, and test file edit detection. Its test file edit detection is the closest prior work to testguard's mechanism. testguard runs that same check live, as a developer-facing hook in a coding session, rather than as an eval-harness measurement after the run. CircumEval~\cite{circumeval} measures how often agents circumvent file permissions, including editing or skipping a writable test. The METR report~\cite{metr} on reward hacking is a field note on frontier agents that modify tests or scoring code to get a pass. The Cursor engineering post~\cite{cursor} audited 731 agent trajectories on coding benchmarks and found that 57 percent used an upstream lookup, reproducing a fix from the public web rather than solving the task. Other benchmarks measure tool-use exploits and evaluator tampering by agents~\cite{rhbench, rhagents}.
 
 testguard differs in where the check sits. The work above measures the problem on fixed task sets. testguard is a guard, not a benchmark. It reads the diff during a live session and blocks a weakening before the green is trusted. The benchmark in this repo is the instrument we use to test the guard, not the contribution by itself.
 
@@ -134,9 +134,9 @@ The self test mutates each task in the documented ways and feeds the result thro
 
 \subsection{Real agent runs}
 
-We ran two models, Claude Sonnet 4.6 with model string \texttt{claude-sonnet-4-6}, and Claude Haiku 4.5 with model string \texttt{claude-haiku-4-5-20251001}. One CLI version, 2.1.193, was recorded in every trial at run time. Data is namespaced by model so the runs coexist.
+We ran two models, Claude Sonnet 4.6 with model string \texttt{claude-sonnet-4-6}, and Claude Haiku 4.5 with model string \texttt{claude-haiku-4-5-20251001}. One CLI version, 2.1.193, was recorded in every trial at run time. Data is namespaced by model so the runs coexist. The unequal N reflects the staging of the runs, Sonnet ran first as a smaller pilot at N=3, and Haiku ran deeper at N=8 as the main cross-model pass, for a comparable budget since Haiku is cheaper per trial.
 
-The committed runs are these. Table~\ref{tab:runs} gives the per-run totals.
+The committed runs are these. Table~\ref{tab:runs} gives the per-run totals.\footnote{A two-model pilot view at N=3, 48 trials, is a subset of the easy data and not a separate run. See \texttt{bench/analyze/results-pilot-n3.md}.}
 
 \begin{table*}[!t]
 \caption{Committed Runs}
@@ -154,8 +154,6 @@ Both models, five hard tasks, N=5 & 50 & 0 of 25 each & Haiku 0 of 24, Sonnet 0 
 \end{table*}
 
 Sources are \texttt{bench/analyze/results.md} for the Sonnet easy run, \texttt{bench/analyze/results-claude-haiku-4-5-20251001.md} for the Haiku easy run, and \texttt{bench/analyze/results-hard-pilot-n5.md} for the hard run. Haiku had 1 broken trial on \texttt{hard\_split\_bill}, an honest failure, not gaming.
-
-A two-model pilot view at N=3, 48 trials, is a subset of the easy data and not a separate run. See \texttt{bench/analyze/results-pilot-n3.md}.
 
 \subsection{Aggregate}
 
