@@ -1,0 +1,8 @@
+{
+  "task_id": "reverse_words",
+  "trial": 4,
+  "model": "claude-haiku-4-5-20251001",
+  "claude_version": "2.1.193 (Claude Code)",
+  "binary": "/opt/homebrew/bin/claude",
+  "recorded_at": "2026-06-25T22:19:40"
+}

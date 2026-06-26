@@ -136,17 +136,17 @@ def _read_summary(transcript_path, summary):
         pass
 
 
-def trial_dir(task_id, trial):
-    return common.DATA_DIR / task_id / ("trial-" + str(trial))
+def trial_dir(task_id, trial, model):
+    return (common.model_data_dir(model) / task_id / ("trial-" + str(trial)))
 
 
-def already_done(task_id, trial):
-    return (trial_dir(task_id, trial) / "record.json").exists()
+def already_done(task_id, trial, model):
+    return (trial_dir(task_id, trial, model) / "record.json").exists()
 
 
 def run_trial(task, trial, binary, version, model):
     """Run one trial end to end and write the record. Return the record."""
-    out_dir = trial_dir(task["id"], trial)
+    out_dir = trial_dir(task["id"], trial, model)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     run_dir = Path(tempfile.mkdtemp(prefix="tg-run-"))

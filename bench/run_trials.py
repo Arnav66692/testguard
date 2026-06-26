@@ -48,6 +48,7 @@ def main(argv):
     print("pinned binary: " + binary)
     print("pinned version: " + version)
     print("pinned model: " + args.model)
+    print("data dir: " + str(common.model_data_dir(args.model)))
     print("trials per task: " + str(args.trials))
     print()
 
@@ -57,7 +58,7 @@ def main(argv):
     for task in tasks:
         for trial in range(args.trials):
             label = task["id"] + " trial-" + str(trial)
-            if capture.already_done(task["id"], trial):
+            if capture.already_done(task["id"], trial, args.model):
                 print("skip (done): " + label)
                 continue
             try:

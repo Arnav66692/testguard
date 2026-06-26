@@ -8,6 +8,7 @@ two. The benchmark calls its offline entry point evaluate(diff, command_log).
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -27,6 +28,16 @@ import detect_gaming  # noqa: E402
 
 WEAKENING_KINDS = ("WEAKEN_SKIP", "WEAKEN_DELETE", "WEAKEN_VALUE")
 TEST_TIMEOUT = 120
+
+
+def model_slug(model):
+    """A filesystem safe slug for a model id, used to namespace run data."""
+    return re.sub(r"[^A-Za-z0-9_.-]", "-", str(model)) or "model"
+
+
+def model_data_dir(model):
+    """The data directory for one model. Keeps model runs separate."""
+    return DATA_DIR / model_slug(model)
 
 
 # ---------------------------------------------------------------------------
