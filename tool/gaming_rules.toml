@@ -1,0 +1,62 @@
+# testguard detection rules.
+#
+# These mirror the defaults baked into detect_gaming.py. The detector runs with
+# zero config. Edit this file to tune the rules per language or per project.
+#
+# Regex values use single quoted literal strings so the backslashes survive the
+# toml parser unchanged.
+
+# File paths treated as test files, matched against the base name.
+test_file_globs = [
+  "test_*.py", "*_test.py",
+  "*.test.js", "*.test.ts",
+  "*.spec.js", "*.spec.ts",
+]
+
+# A changed file under one of these directories is also treated as a test file.
+test_dir_names = ["tests", "spec"]
+
+# An added line that contains one of these markers is a skip or xfail. This is a
+# blocking signal when a test command passed this session.
+skip_markers = [
+  "@pytest.mark.skip", "@pytest.mark.xfail",
+  "@unittest.skip", "@unittest.expectedFailure",
+  "it.skip", "xit(", "xdescribe(", "test.skip",
+  "@Disabled", "#[ignore]", "t.Skip(",
+]
+
+# An added line that contains one of these markers introduces a mock or patch.
+# This is a warning signal, not a block.
+mock_markers = [
+  "mock.patch", "@patch", "MagicMock", "Mock(",
+  "monkeypatch", "jest.mock", "sinon",
+]
+
+# A logged command that matches one of these patterns is a test command. A match
+# with status ok is a confirmed passing test command.
+test_command_patterns = [
+  '\bpytest\b', '\bpy\.test\b',
+  'python\s+-m\s+pytest', 'python\s+-m\s+unittest',
+  '\bunittest\b', '\bnpm\s+(?:run\s+)?test\b',
+  '\byarn\s+test\b', '\bpnpm\s+(?:run\s+)?test\b',
+  '\bjest\b', '\bvitest\b', '\bmocha\b',
+  '\bgo\s+test\b', '\bcargo\s+test\b',
+  '\bphpunit\b', '\brspec\b', '\btox\b',
+  '\bmake\b',
+]
+
+# Lines that look like assertions, used to count asserts added versus removed.
+assert_patterns = [
+  '\bassert\b', '\bassert[A-Z]\w*\s*\(',
+  '\bexpect\s*\(', '\.should\b', '\bEXPECT_\w+\s*\(',
+]
+
+# Lines that look like test definitions, used to count tests added versus removed.
+testdef_patterns = [
+  '\bdef\s+test_?\w*', '\bdef\s+Test\w*',
+  '\bfunc\s+Test\w*', '\bit\s*\(', '\btest\s*\(',
+]
+
+# Which finding kinds block the session and which only warn.
+block_kinds = ["WEAKEN_SKIP", "WEAKEN_DELETE"]
+warn_kinds = ["WEAKEN_VALUE", "SUSPECT_MOCK"]
