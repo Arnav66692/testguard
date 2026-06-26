@@ -48,6 +48,8 @@ def check_state(task, overlay, parent):
 def preflight_task(task):
     print("task " + task["id"] + " (" + task.get("kind") + ", "
           + task.get("shape") + ")")
+    if task.get("difficulty"):
+        print("  why hard: " + task["difficulty"])
     parent = tempfile.mkdtemp(prefix="tg-preflight-")
     try:
         base_v, base_h, _ = check_state(task, None, parent)
@@ -74,7 +76,13 @@ def preflight_task(task):
 
 
 def main():
-    tasks = [common.load_task(tid) for tid in common.task_ids()]
+    selected = None
+    args = sys.argv[1:]
+    if "--tasks" in args:
+        idx = args.index("--tasks")
+        selected = [t for t in args[idx + 1].split(",") if t]
+    ids = selected if selected else common.task_ids()
+    tasks = [common.load_task(tid) for tid in ids]
     if not tasks:
         print("no tasks found")
         return 1

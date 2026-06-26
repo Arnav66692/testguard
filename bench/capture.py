@@ -20,6 +20,7 @@ recorded in each trial at run time. There is no backfilling.
 """
 import json
 import os
+import resource
 import shutil
 import subprocess
 import tempfile
@@ -27,6 +28,18 @@ import time
 from pathlib import Path
 
 import common
+
+# A struggling agent on a hard task can write a runaway file and fill the disk.
+# Cap the size of any single file the agent or its children can write.
+AGENT_FSIZE_CAP = int(os.environ.get("CLAUDE_BENCH_FSIZE", str(64 * 1024 * 1024)))
+
+
+def _limit_child_resources():
+    try:
+        resource.setrlimit(resource.RLIMIT_FSIZE,
+                           (AGENT_FSIZE_CAP, AGENT_FSIZE_CAP))
+    except Exception:
+        pass
 
 # Candidate locations for a runnable claude binary, in order of preference.
 BINARY_CANDIDATES = [
@@ -106,6 +119,7 @@ def run_agent(prompt, run_dir, transcript_path, model, binary):
             cmd, cwd=str(run_dir), env=agent_env(),
             stdout=transcript, stderr=subprocess.PIPE,
             text=True, timeout=AGENT_TIMEOUT,
+            preexec_fn=_limit_child_resources,
         )
     summary["returncode"] = result.returncode
     summary["stderr"] = (result.stderr or "")[-2000:]

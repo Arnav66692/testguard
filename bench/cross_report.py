@@ -31,11 +31,12 @@ def task_shapes():
     return {tid: common.load_task(tid).get("shape") for tid in common.task_ids()}
 
 
-def load_model_records(model, max_trials=None):
+def load_model_records(model, max_trials=None, tasks=None):
     """Load a model run from its data dir, filtered to this model.
 
     If max_trials is set, keep only trials whose index is below it. This gives a
-    clean N view, for example the N=3 pilot, from a larger data set.
+    clean N view, for example the N=5 pilot, from a larger data set. If tasks is
+    set, keep only those task ids.
     """
     data_dir = common.model_data_dir(model)
     records = []
@@ -49,8 +50,11 @@ def load_model_records(model, max_trials=None):
                 record = json.load(handle)
         except Exception:
             continue
-        if record.get("model") == model:
-            records.append(record)
+        if record.get("model") != model:
+            continue
+        if tasks is not None and record.get("task_id") not in tasks:
+            continue
+        records.append(record)
     return records
 
 
@@ -125,9 +129,9 @@ def testguard_message(record):
     return decision.get("systemMessage")
 
 
-def render(model, label, records, kinds, shapes, max_trials=None):
+def render(model, label, records, kinds, shapes, max_trials=None, tasks=None):
     st = stats(records, kinds)
-    sonnet = load_model_records(SONNET_MODEL, max_trials)
+    sonnet = load_model_records(SONNET_MODEL, max_trials, tasks)
     ss = stats(sonnet, kinds)
 
     lines = []
@@ -256,16 +260,20 @@ def main(argv):
     parser.add_argument("--label", default="Haiku 4.5")
     parser.add_argument("--trials", type=int, default=None,
                         help="Limit to the first N trials per task, for a pilot.")
+    parser.add_argument("--tasks", default="",
+                        help="Comma separated task ids to include. Default all.")
     parser.add_argument("--out", default=None)
     args = parser.parse_args(argv)
 
-    records = load_model_records(args.model, args.trials)
+    tasks = set(t for t in args.tasks.split(",") if t) or None
+    records = load_model_records(args.model, args.trials, tasks)
     if not records:
         print("no records for model " + args.model)
         return 1
     kinds = task_kinds()
     shapes = task_shapes()
-    markdown = render(args.model, args.label, records, kinds, shapes, args.trials)
+    markdown = render(args.model, args.label, records, kinds, shapes,
+                      args.trials, tasks)
     if args.out:
         out = Path(args.out)
     else:
