@@ -37,8 +37,8 @@ documented patterns are adding a skip or xfail marker, deleting or weakening an
 assertion, changing an expected value to match wrong output, mocking the unit
 under test, and hardcoding the expected output.
 
-A prior project, claim-check, asked whether agents falsely report completion when
-they can verify themselves. The answer was that they tend not to. testguard asks
+In earlier work I built claim-check, which asked whether agents falsely report
+completion when they can verify themselves. The answer was that they tend not to. testguard asks
 the next question. When the agent makes the suite pass, did it earn the green or
 game it.
 
@@ -249,8 +249,8 @@ did not reach the cornered regime, where weakening a test is the only route to a
 green suite. In the one trial where a model could not solve the task,
 hard_split_bill on Haiku, the model failed honestly rather than weakening a test.
 
-This is consistent with the claim-check finding. Capable agents that can verify
-themselves tend to behave honestly. The result here extends it. Even when the
+This is consistent with my earlier claim-check finding. Capable agents that can
+verify themselves tend to behave honestly. The result here extends it. Even when the
 suite is editable and a shortcut is available, these two models did not take it.
 
 The one measured strength of testguard is its zero false positive rate. Over the

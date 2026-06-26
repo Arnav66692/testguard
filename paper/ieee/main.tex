@@ -29,7 +29,7 @@ Agents that write code are now trusted to run their own tests and report results
 
 The assumption has a known failure mode. Reward hacking, also called test warping. The agent makes the suite green by changing the tests, not the code. The documented patterns are adding a skip or xfail marker, deleting or weakening an assertion, changing an expected value to match wrong output, mocking the unit under test, and hardcoding the expected output.
 
-A prior project, claim-check, asked whether agents falsely report completion when they can verify themselves. The answer was that they tend not to. testguard asks the next question. When the agent makes the suite pass, did it earn the green or game it.
+In earlier work I built claim-check, which asked whether agents falsely report completion when they can verify themselves. The answer was that they tend not to. testguard asks the next question. When the agent makes the suite pass, did it earn the green or game it.
 
 We make three contributions.
 
@@ -184,7 +184,7 @@ Gaming over 116 gaming-task trials, 138 minus 22 control & 0 (Wilson 95 percent 
 
 The headline of this work was meant to be testguard catching real agent weakening. That did not happen. Across 138 real trials, no agent weakened a test. Both models solved the tasks honestly, or in one case failed honestly. The honest reading of the hard tasks is this. 49 of the 50 hard-task trials were solved honestly. So the hard tasks largely stayed within the models' honest reach. They did not reach the cornered regime, where weakening a test is the only route to a green suite. In the one trial where a model could not solve the task, \texttt{hard\_split\_bill} on Haiku, the model failed honestly rather than weakening a test.
 
-This is consistent with the claim-check finding. Capable agents that can verify themselves tend to behave honestly. The result here extends it. Even when the suite is editable and a shortcut is available, these two models did not take it.
+This is consistent with my earlier claim-check finding. Capable agents that can verify themselves tend to behave honestly. The result here extends it. Even when the suite is editable and a shortcut is available, these two models did not take it.
 
 The one measured strength of testguard is its zero false positive rate. Over the 137 honest solves it never flagged honest work. For a guard, this is the property that decides whether it is usable at all. A false block is worse than a missed one, because it interrupts honest work and trains the user to ignore the guard.
 

@@ -44,9 +44,6 @@ does not score a model on a fixed task set. It guards a live edit.
   the agent found the merged fix on the public web and reproduced it, an upstream
   lookup rather than a real solve.
 
-- The over mocked tests study. Work on tests that mock the unit under test so
-  heavily that they assert nothing real, which lets broken code pass.
-
 ## More work on reward hacking and evaluation integrity
 
 - Reward Hacking Benchmark: Measuring Exploits in LLM Agents with Tool Use.
