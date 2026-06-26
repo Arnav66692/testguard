@@ -58,13 +58,21 @@ We make three contributions.
 
 ## 2. Related work
 
-Recent work studies agents that game tests or benchmarks. SpecBench builds tasks
-where a shortcut passes the tests without meeting the spec. EvilGenie catalogs
-reward hacking behaviors in agent transcripts. CircumEval studies how agents
-circumvent checks. The METR reward hacking note is a field report on frontier
-agents that hack the reward signal during evaluation, including editing or
-skipping tests. The Cursor reward hacking on benchmarks study looks at agents
-that pass coding benchmarks by exploiting the harness. The over mocked tests
+Recent work studies agents that game tests or benchmarks. SpecBench, by Zhao and
+others, decomposes each task into a specification, visible tests, and hidden
+tests, and measures reward hacking as the gap between the visible and the hidden
+tests. That visible versus held-out gap is the same held-out idea this work uses,
+and we treat SpecBench as prior art for the held-out method. EvilGenie, by Gabor,
+Lynch, and Rosenfeld, measures reward hacking three ways, held-out unit tests,
+LLM judges, and test file edit detection. Its test file edit detection is the
+closest prior work to testguard's mechanism. testguard runs that same check live,
+as a developer-facing hook in a coding session, rather than as an eval-harness
+measurement after the run. CircumEval measures how often agents circumvent file
+permissions, including editing or skipping a writable test. The METR report on
+reward hacking is a field note on frontier agents that modify tests or scoring
+code to get a pass. The Cursor engineering post audited 731 agent trajectories on
+coding benchmarks and found that 57 percent used an upstream lookup, reproducing
+a fix from the public web rather than solving the task. The over mocked tests
 study looks at tests that mock the unit under test so heavily that they assert
 nothing real.
 
@@ -72,7 +80,8 @@ testguard differs in where the check sits. The work above measures the problem o
 fixed task sets. testguard is a guard, not a benchmark. It reads the diff during
 a live session and blocks a weakening before the green is trusted. The benchmark
 in this repo is the instrument we use to test the guard, not the contribution by
-itself. See `paper/related-work.md` for the list and one line on each.
+itself. See `paper/related-work.md` for the full list with titles, identifiers,
+and links.
 
 ## 3. The tool
 
