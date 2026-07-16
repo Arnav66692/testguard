@@ -297,7 +297,7 @@ finding. On this task set, these agents earn the green rather than game it.
 
 ## Acknowledgments
 
-This work was developed with the assistance of Claude Code, used as a coding and simulation tool. The author is responsible for the research design, the experimental methodology, the analysis, the writing, and all claims.
+The author used Claude Code (Anthropic) to assist with implementing the benchmark and detector code, running the simulation trials, and editing the manuscript for language and clarity. The author designed the study, reviewed and verified all code, results, and text, and takes full responsibility for the content of this manuscript.
 
 ## Appendix A. Reproducibility
 
