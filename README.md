@@ -134,4 +134,4 @@ MIT. See `LICENSE`.
 
 ## Acknowledgments
 
-The author used Claude Code (Anthropic) to assist with the benchmark and detector code, the trial runs, and manuscript editing. The research design, methodology, analysis, and all claims are the author's own, and the author takes full responsibility for the content.
+The author used Claude Code (Anthropic) to assist with the trial runs. The research design, methodology, analysis, and all claims are the author's own, and the author takes full responsibility for the content.
