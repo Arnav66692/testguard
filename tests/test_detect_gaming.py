@@ -372,7 +372,7 @@ def test_deleted_or_renamed_test_paths(tmp_path, session, name):
     assert decision_of(run_detect(repo, session))['decision'] == 'block'
 
 
-@pytest.mark.parametrize('command', ['pytest --fixtures -q', 'go test -list .', 'tox -l', 'go test -n ./...', 'pytest --setup-only'])
+@pytest.mark.parametrize('command', ['pytest --fixtures -q', 'go test -list .', 'tox -l', 'go test -n ./...', 'pytest --setup-only', 'pytest -V', 'pytest --funcargs', 'pytest --cache-show'])
 def test_listing_commands_do_not_establish_pass(tmp_path, session, command):
     repo = tmp_path / 'repo'
     init_repo(repo, {'tests/test_app.py': TEST_TWO})
@@ -388,3 +388,20 @@ def test_parallel_pytest_is_a_test_command(tmp_path, session):
     write_files(repo, {'tests/test_app.py': TEST_ONE})
     write_log(session, [('pytest -n auto', 'ok')])
     assert decision_of(run_detect(repo, session))['decision'] == 'block'
+
+
+def test_non_utf8_git_filename_does_not_hide_weakening():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('detector', DETECT)
+    detector = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(detector)
+    diff = r'''diff --git "a/test_\377.py" "b/test_\377.py"
+deleted file mode 100644
+--- "a/test_\377.py"
++++ /dev/null
+@@ -1,2 +0,0 @@
+-def test_bad():
+-    assert False
+'''
+    result = detector.evaluate(diff, [{'command': 'pytest', 'status': 'ok'}])
+    assert result['verdict'] == 'block'

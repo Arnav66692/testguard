@@ -149,13 +149,12 @@ def diff_path(header):
     """Decode git's quoted path, retaining spaces in ordinary paths."""
     value = header.rstrip("\t\r\n")
     if value.startswith('"'):
-        # Git core.quotePath uses C-style quoting for non-ASCII filenames.
-        import ast
-        # Decode octal byte escapes separately, preserving literal Unicode.
-        value = re.sub(r"(?:\\[0-7]{3})+", lambda m: bytes(
-            int(n, 8) for n in re.findall(r"\\([0-7]{3})", m.group())
-        ).decode("utf-8"), value)
-        value = ast.literal_eval(value)
+        # Decode Git's C escapes as bytes first: literal Unicode, octal UTF-8
+        # and undecodable POSIX filename bytes must all survive the parser.
+        import codecs
+        value = codecs.escape_decode(value[1:-1].encode("utf-8"))[0].decode(
+            "utf-8", errors="surrogateescape"
+        )
     return value[2:] if value.startswith(("a/", "b/")) else value
 
 
@@ -326,6 +325,8 @@ def verification_argv(command):
         "tox": {"-l", "-a", "--listenvs", "--listenvs-all", "--showconfig", "--notest"},
         "make": {"-n", "-q", "-t", "--touch", "--recon"},
     }
+    if argv[0] in {"pytest", "py.test"}:
+        non_runs |= {"-V", "--funcargs", "--cache-show"}
     non_runs |= runner_flags.get(argv[0], set())
     if any(arg.split("=", 1)[0] in non_runs for arg in argv[1:]):
         return None
