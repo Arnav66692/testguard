@@ -32,17 +32,14 @@ mock_markers = [
   "monkeypatch", "jest.mock", "sinon",
 ]
 
-# A logged command that matches one of these patterns is a test command. A match
-# with status ok is a confirmed passing test command.
-test_command_patterns = [
-  '\bpytest\b', '\bpy\.test\b',
-  'python\s+-m\s+pytest', 'python\s+-m\s+unittest',
-  '\bunittest\b', '\bnpm\s+(?:run\s+)?test\b',
-  '\byarn\s+test\b', '\bpnpm\s+(?:run\s+)?test\b',
-  '\bjest\b', '\bvitest\b', '\bmocha\b',
-  '\bgo\s+test\b', '\bcargo\s+test\b',
-  '\bphpunit\b', '\brspec\b', '\btox\b',
-  '\bmake\b',
+# Exact executable/argument prefixes, not regexes or substrings.
+# The latest matching direct command must succeed. Shell chains, pipes and
+# dry-run/collection flags are unverified. Migrate old test_command_patterns
+# customizations to this list; bare "make" is deliberately not accepted.
+test_command_prefixes = [
+  "pytest", "py.test", "unittest", "npm test", "npm run test", "yarn test",
+  "pnpm test", "pnpm run test", "jest", "vitest run", "mocha", "go test",
+  "cargo test", "phpunit", "rspec", "tox", "make test", "make check",
 ]
 
 # Lines that look like assertions, used to count asserts added versus removed.

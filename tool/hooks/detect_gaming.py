@@ -17,6 +17,7 @@ import fnmatch
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -41,15 +42,11 @@ DEFAULTS = {
         "mock.patch", "@patch", "MagicMock", "Mock(",
         "monkeypatch", "jest.mock", "sinon",
     ],
-    "test_command_patterns": [
-        r"\bpytest\b", r"\bpy\.test\b",
-        r"python\s+-m\s+pytest", r"python\s+-m\s+unittest",
-        r"\bunittest\b", r"\bnpm\s+(?:run\s+)?test\b",
-        r"\byarn\s+test\b", r"\bpnpm\s+(?:run\s+)?test\b",
-        r"\bjest\b", r"\bvitest\b", r"\bmocha\b",
-        r"\bgo\s+test\b", r"\bcargo\s+test\b",
-        r"\bphpunit\b", r"\brspec\b", r"\btox\b",
-        r"\bmake\b",
+    "test_command_prefixes": [
+        "pytest", "py.test", "unittest", "npm test", "npm run test",
+        "yarn test", "pnpm test", "pnpm run test", "jest", "vitest run",
+        "mocha", "go test", "cargo test", "phpunit", "rspec", "tox",
+        "make test", "make check",
     ],
     "assert_patterns": [
         r"\bassert\b", r"\bassert[A-Z]\w*\s*\(",
@@ -148,6 +145,19 @@ def is_test_file(path, cfg):
     return False
 
 
+def diff_path(header):
+    """Decode git's quoted path, retaining spaces in ordinary paths."""
+    value = header.rstrip("\t\r\n")
+    if value.startswith('"'):
+        # Decode Git's C escapes as bytes first: literal Unicode, octal UTF-8
+        # and undecodable POSIX filename bytes must all survive the parser.
+        import codecs
+        value = codecs.escape_decode(value[1:-1].encode("utf-8"))[0].decode(
+            "utf-8", errors="surrogateescape"
+        )
+    return value[2:] if value.startswith(("a/", "b/")) else value
+
+
 def parse_diff(diff_text):
     """Parse a unified git diff into per file added and removed lines.
 
@@ -160,22 +170,30 @@ def parse_diff(diff_text):
     current = None
     new_no = 0
     old_no = 0
+    old_path = None
+    rename_from = None
     for line in diff_text.split("\n"):
         if line == "":
             continue
         if line.startswith("diff --git"):
             current = None
+            old_path = None
+            rename_from = None
+            continue
+        if line.startswith("rename from "):
+            rename_from = diff_path(line[len("rename from "):])
+            continue
+        if line.startswith("rename to ") and rename_from:
+            target = diff_path(line[len("rename to "):])
+            files.setdefault(rename_from, {"added": [], "removed": []})["renamed_to"] = target
             continue
         if line.startswith("--- "):
+            old_path = diff_path(line[4:])
             continue
         if line.startswith("+++ "):
-            path = line[4:].strip()
-            if path.startswith("b/"):
-                path = path[2:]
-            if path == "/dev/null":
-                current = None
-            else:
-                current = path
+            path = diff_path(line[4:])
+            current = old_path if path == "/dev/null" else path
+            if current and current != "/dev/null":
                 files.setdefault(current, {"added": [], "removed": []})
             continue
         if line.startswith("@@"):
@@ -272,17 +290,90 @@ def classify(path, edits, cfg):
     return findings
 
 
-def passing_test_in_records(records, cfg):
-    """Return True when any record is a passing test command."""
-    regexes = compile_list(cfg["test_command_patterns"])
-    for record in records or []:
-        if not isinstance(record, dict):
-            continue
-        if record.get("status") != "ok":
-            continue
-        if matches_any(record.get("command", ""), regexes):
+def command_argv(command):
+    """Recognize a single command, never infer success from shell text.
+
+    Pipelines, substitutions, redirects and compound commands cannot supply
+    per-command exit status in the current log format, so remain unverified.
+    """
+    if not isinstance(command, str) or any(c in command for c in ";&|<>`$\n\r"):
+        return None
+    try:
+        argv = shlex.split(command)
+    except ValueError:
+        return None
+    if not argv:
+        return None
+    return argv
+
+
+def verification_argv(command):
+    argv = command_argv(command)
+    if not argv:
+        return None
+    argv[0] = os.path.basename(argv[0])
+    if re.fullmatch(r"python(?:[0-9]+(?:\.[0-9]+)*)?", argv[0]):
+        if len(argv) < 3 or argv[1] != "-m":
+            return None
+        argv = argv[2:]
+    non_runs = {"--help", "-h", "--version", "--collect-only", "--co",
+                "--listTests", "--showConfig", "--if-present", "--passWithNoTests", "--list-tests", "--list", "--no-run", "--dry-run",
+                "--show-only", "--just-print", "--question", "--fixtures",
+                "--fixtures-per-test", "--markers", "--trace-config", "--setup-plan", "--setup-only"}
+    runner_flags = {
+        "go": {"-list", "-c", "-n"},
+        "tox": {"-l", "-a", "--listenvs", "--listenvs-all", "--showconfig", "--notest"},
+        "make": {"-n", "-q", "-t", "--touch", "--recon"},
+    }
+    if argv[0] in {"pytest", "py.test"}:
+        non_runs |= {"-V", "--funcargs", "--cache-show", "--collectonly"}
+    non_runs |= runner_flags.get(argv[0], set())
+    if any(arg.split("=", 1)[0] in non_runs for arg in argv[1:]):
+        return None
+    if argv[0] == "make":
+        # Normalize scheduling/verbosity options, retaining all actual targets.
+        # Extra targets and recipe overrides remain ambiguous and cannot pass.
+        normalized = ["make"]
+        i = 1
+        while i < len(argv):
+            arg = argv[i]
+            if arg in {"-s", "--silent", "--quiet", "--no-print-directory",
+                       "-k", "--keep-going", "-B", "--always-make"}:
+                i += 1
+                continue
+            if re.fullmatch(r"-j[0-9]+|--jobs=[0-9]+", arg):
+                i += 1
+                continue
+            if arg in {"-j", "--jobs"}:
+                i += 1
+                if i < len(argv) and argv[i].isdigit():
+                    i += 1
+                continue
+            normalized.append(arg)
+            i += 1
+        argv = normalized
+    return argv
+
+
+def matches_command(command, prefixes):
+    argv = verification_argv(command)
+    if not argv:
+        return False
+    for prefix in prefixes:
+        expected = verification_argv(prefix)
+        if expected and argv[:len(expected)] == expected:
+            # make accepts extra targets; a later cleanup is not a test pass.
+            if argv[0] == "make" and len(argv) != len(expected):
+                continue
             return True
     return False
+
+
+def passing_test_in_records(records, cfg):
+    """Only the latest recognized verification run can establish a pass."""
+    matched = [record for record in records or [] if isinstance(record, dict)
+               and matches_command(record.get("command"), cfg["test_command_prefixes"])]
+    return bool(matched and matched[-1].get("status") == "ok")
 
 
 def read_command_log(session_id):
@@ -317,6 +408,9 @@ def find_findings(diff_text, cfg):
     for path, file_edits in edits.items():
         if not is_test_file(path, cfg):
             continue
+        if file_edits.get("renamed_to") and not is_test_file(file_edits["renamed_to"], cfg):
+            findings.append({"kind": "WEAKEN_DELETE", "path": path, "line": 0,
+                             "detail": "test file renamed outside configured test paths"})
         findings.extend(classify(path, file_edits, cfg))
     return findings
 

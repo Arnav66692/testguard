@@ -319,3 +319,101 @@ def test_logger_writes_ok_and_fail(session):
     assert records[1]["status"] == "fail"
     assert records[0]["command"] == "pytest -q"
     assert records[1]["command"] == "pytest -q"
+
+
+def test_deleted_failing_test_file_blocks(tmp_path, session):
+    repo = tmp_path / "repo"
+    init_repo(repo, {"test_keep.py": "def test_keep():\n    assert True\n",
+                     "test_critical.py": "def test_failure():\n    assert False\n"})
+    before = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=repo,
+                            capture_output=True)
+    assert before.returncode == 1
+    (repo / "test_critical.py").unlink()
+    after = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=repo,
+                           capture_output=True)
+    assert after.returncode == 0
+    write_log(session, [("python -m pytest -q", "ok")])
+    assert decision_of(run_detect(repo, session))["decision"] == "block"
+
+
+def test_test_file_rename_is_silent(tmp_path, session):
+    repo = tmp_path / "repo"
+    init_repo(repo, {"tests/test_old.py": TEST_ONE})
+    git(repo, "mv", "tests/test_old.py", "tests/test_new.py")
+    write_log(session, [("pytest", "ok")])
+    assert decision_of(run_detect(repo, session)) is None
+
+
+@pytest.mark.parametrize("commands", [
+    [("echo pytest", "ok")], [("make clean", "ok")],
+    [("pytest || true", "ok")], [("pytest --collect-only", "ok")],
+    [("pytest", "ok"), ("pytest", "fail")],
+])
+def test_unverified_or_failed_tests_cannot_trigger_block(tmp_path, session, commands):
+    repo = tmp_path / "repo"
+    init_repo(repo, {"tests/test_app.py": TEST_TWO})
+    write_files(repo, {"tests/test_app.py": TEST_ONE})
+    write_log(session, commands)
+    result = decision_of(run_detect(repo, session))
+    assert result and "systemMessage" in result
+    assert result.get("decision") != "block"
+
+
+@pytest.mark.parametrize('name', ['test_bad.py', 'test_é\t.py'])
+def test_deleted_or_renamed_test_paths(tmp_path, session, name):
+    repo = tmp_path / 'repo'
+    init_repo(repo, {name: TEST_ONE})
+    git(repo, 'config', 'core.quotePath', 'false')
+    if name == 'test_bad.py':
+        git(repo, 'mv', name, 'disabled_checks.py')
+    else:
+        (repo / name).unlink()
+    write_log(session, [('pytest', 'ok')])
+    assert decision_of(run_detect(repo, session))['decision'] == 'block'
+
+
+@pytest.mark.parametrize('command', ['pytest --fixtures -q', 'go test -list .', 'tox -l', 'go test -n ./...', 'pytest --setup-only', 'pytest -V', 'pytest --funcargs', 'pytest --cache-show', 'pytest --collectonly', 'jest --showConfig', 'npm test --if-present'])
+def test_listing_commands_do_not_establish_pass(tmp_path, session, command):
+    repo = tmp_path / 'repo'
+    init_repo(repo, {'tests/test_app.py': TEST_TWO})
+    write_files(repo, {'tests/test_app.py': TEST_ONE})
+    write_log(session, [(command, 'ok')])
+    result = decision_of(run_detect(repo, session))
+    assert result and result.get('decision') != 'block'
+
+
+def test_parallel_pytest_is_a_test_command(tmp_path, session):
+    repo = tmp_path / 'repo'
+    init_repo(repo, {'tests/test_app.py': TEST_TWO})
+    write_files(repo, {'tests/test_app.py': TEST_ONE})
+    write_log(session, [('pytest -n auto', 'ok')])
+    assert decision_of(run_detect(repo, session))['decision'] == 'block'
+
+
+def test_non_utf8_git_filename_does_not_hide_weakening():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('detector', DETECT)
+    detector = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(detector)
+    diff = r'''diff --git "a/test_\377.py" "b/test_\377.py"
+deleted file mode 100644
+--- "a/test_\377.py"
++++ /dev/null
+@@ -1,2 +0,0 @@
+-def test_bad():
+-    assert False
+'''
+    result = detector.evaluate(diff, [{'command': 'pytest', 'status': 'ok'}])
+    assert result['verdict'] == 'block'
+
+
+@pytest.mark.parametrize('command', ['make test -j2', 'make -j 2 test', 'make --jobs=2 test'])
+def test_parallel_make_uses_latest_status(tmp_path, session, command):
+    repo = tmp_path / 'repo'
+    init_repo(repo, {'tests/test_app.py': TEST_TWO})
+    write_files(repo, {'tests/test_app.py': TEST_ONE})
+    write_log(session, [('make test', 'ok'), (command, 'fail')])
+    result = decision_of(run_detect(repo, session))
+    assert result and result.get('decision') != 'block'
+    write_log(session, [(command, 'ok')])
+    assert decision_of(run_detect(repo, session))['decision'] == 'block'

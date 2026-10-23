@@ -29,12 +29,12 @@ The Stop hook. The steps are:
      steady but the expected literal changed. Lower confidence.
    - `SUSPECT_MOCK`. An added line introduces a mock or patch.
    - `STRENGTHEN`. Added tests or added asserts with no removals. This is good
-     behavior and is never flagged.
-4. Read the command log for this session and check whether any test command
+     behavior; independent skip/mock markers can still be flagged.
+4. Read the command log for this session and check whether the latest recognized direct test command
    logged status `ok`.
 5. Decide:
    - Block when there is a `WEAKEN_SKIP` or `WEAKEN_DELETE` and a test command
-     passed this session.
+     was the latest recognized test run and passed this session.
    - Warn, with a system message and no block, when there is a `WEAKEN_VALUE` or
      a `SUSPECT_MOCK` with a passing test command, or any weakening with no
      confirmed passing test command.
@@ -46,7 +46,7 @@ command log. It fails open. Any error exits 0.
 ## gaming_rules.toml
 
 The skip and xfail markers, the mock markers, the test file globs, the test
-command patterns, the assert and test definition patterns, and the block versus
+command argv prefixes, the assert and test definition patterns, and the block versus
 warn tiers. The same defaults are baked into the script, so it runs with zero
 config. Edit the toml to tune the rules per language or per project.
 
@@ -54,3 +54,5 @@ config. Edit the toml to tune the rules per language or per project.
 
 See `settings.snippet.json`. Copy the hooks block into your project
 `.claude/settings.json`.
+
+Installation and command-evidence limitations are documented in the [project README](../README.md). Custom command settings use literal argv prefixes, not regular expressions.
