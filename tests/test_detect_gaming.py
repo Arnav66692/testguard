@@ -372,7 +372,7 @@ def test_deleted_or_renamed_test_paths(tmp_path, session, name):
     assert decision_of(run_detect(repo, session))['decision'] == 'block'
 
 
-@pytest.mark.parametrize('command', ['pytest --fixtures -q', 'go test -list .', 'tox -l', 'go test -n ./...', 'pytest --setup-only', 'pytest -V', 'pytest --funcargs', 'pytest --cache-show'])
+@pytest.mark.parametrize('command', ['pytest --fixtures -q', 'go test -list .', 'tox -l', 'go test -n ./...', 'pytest --setup-only', 'pytest -V', 'pytest --funcargs', 'pytest --cache-show', 'pytest --collectonly', 'jest --showConfig', 'npm test --if-present'])
 def test_listing_commands_do_not_establish_pass(tmp_path, session, command):
     repo = tmp_path / 'repo'
     init_repo(repo, {'tests/test_app.py': TEST_TWO})
