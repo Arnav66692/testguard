@@ -405,3 +405,15 @@ deleted file mode 100644
 '''
     result = detector.evaluate(diff, [{'command': 'pytest', 'status': 'ok'}])
     assert result['verdict'] == 'block'
+
+
+@pytest.mark.parametrize('command', ['make test -j2', 'make -j 2 test', 'make --jobs=2 test'])
+def test_parallel_make_uses_latest_status(tmp_path, session, command):
+    repo = tmp_path / 'repo'
+    init_repo(repo, {'tests/test_app.py': TEST_TWO})
+    write_files(repo, {'tests/test_app.py': TEST_ONE})
+    write_log(session, [('make test', 'ok'), (command, 'fail')])
+    result = decision_of(run_detect(repo, session))
+    assert result and result.get('decision') != 'block'
+    write_log(session, [(command, 'ok')])
+    assert decision_of(run_detect(repo, session))['decision'] == 'block'
