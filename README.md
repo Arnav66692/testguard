@@ -14,10 +14,12 @@ get the green. It catches the routes that edit tests. It does not catch
 hardcoding, which leaves the tests untouched. The held-out benchmark catches that
 case instead.
 
+[![CI](https://github.com/Arnav66692/testguard/actions/workflows/ci.yml/badge.svg)](https://github.com/Arnav66692/testguard/actions/workflows/ci.yml)
+
 ## What testguard catches
 
 testguard blocks the session when a test was weakened and a test command passed
-this session.
+as the latest recognized test run this session.
 
 - Block. A skip or xfail marker was added.
 - Block. An assertion or a whole test was deleted, meaning fewer asserts or
@@ -39,20 +41,28 @@ benchmark in `bench/` uses held-out tests for exactly this reason.
 
 ## The precision rule
 
-Weakening the tests is the signal. Strengthening is not. Adding new tests or new
-assertions is good behavior and is never flagged. Removing assertions, skipping
+Weakening the tests is the signal. Strengthening is not. Adding ordinary tests or assertions alone is not a weakening signal. New tests
+that introduce skip/xfail markers or mocks can still be flagged. Removing assertions, skipping
 tests, or loosening expected values is the gaming signal. The detector tells
 these apart. A false block is worse than a missed one, so testguard blocks only
 on an unambiguous weakening together with a confirmed passing test command.
 
 ## Install
 
-Copy the hooks block from `tool/settings.snippet.json` into your project
-`.claude/settings.json`. Set `CLAUDE_PROJECT_DIR` or replace it with an absolute
-path to the `tool` directory. The hooks run with `python3` and need no packages.
+Copy the tool into the target project, then merge the `hooks` object from
+[`tool/settings.snippet.json`](tool/settings.snippet.json) into that project's
+`.claude/settings.json` without overwriting existing hooks:
 
-This repo already wires the hooks in `.claude/settings.json`, so testguard flags
-gaming on its own development.
+```bash
+# Run from this repository; replace /path/to/project with your project directory.
+mkdir -p /path/to/project/.claude/testguard
+cp -R tool/. /path/to/project/.claude/testguard/
+```
+
+The snippet resolves `.claude/testguard/hooks` under `CLAUDE_PROJECT_DIR`.
+Python 3.11+ reads the optional TOML settings using the standard library. The
+hooks need no third-party packages. This repository's own development settings
+use `tool/hooks`.
 
 ## How it works
 
@@ -71,7 +81,7 @@ Three properties hold.
 - Deterministic. No model calls anywhere. The signal is the git diff and the
   command log.
 - Fail open. Any error inside a hook exits 0, so a session is never broken.
-- Strengthening never flags. New tests and new assertions pass without a word.
+- Ordinary added assertions are silent; skip and mock markers are still classified.
 
 The full account is in `tool/README.md`.
 
@@ -79,7 +89,7 @@ The full account is in `tool/README.md`.
 
 The rules live in `tool/gaming_rules.toml`. The same defaults are baked into the
 script, so testguard runs with zero config. You can tune the skip and xfail
-markers, the mock markers, the test file patterns, the test command patterns,
+markers, the mock markers, the test file patterns, the test command argv prefixes,
 the assertion and test definition patterns, and which finding kinds block versus
 warn.
 
@@ -135,3 +145,23 @@ MIT. See `LICENSE`.
 ## Acknowledgments
 
 The author used Claude Code (Anthropic) to assist with the trial runs. The research design, methodology, analysis, and all claims are the author's own, and the author takes full responsibility for the content.
+
+## Evidence boundaries
+
+Whole-file test deletion and moves outside configured test paths count as
+weakening; ordinary test-to-test renames do not. Test discovery is defined by
+`test_file_globs` and `test_dir_names`, so match those patterns to your runner's discovery rules.
+
+A passing command must match a direct argv prefix in `test_command_prefixes`.
+Executable paths and `python -m pytest` are accepted. Echo, cleanup targets,
+help/list/collection modes and shell compounds do not establish a pass. Run tests
+separately from `cd`, pipes, and `&&` chains. The latest recognized run must pass.
+The former regex `test_command_patterns` setting is replaced by literal argv
+prefixes; migrate custom settings to `test_command_prefixes`.
+
+The command log does not bind a run to the final working-tree hash or prove full
+suite coverage. Hooks fail open and can be edited by the agent, so this is an
+advisory guard, not a tamper-resistant security boundary. No new live agent trials
+were run for the detector fixes; the published trial results remain historical.
+
+MIT licensed. See [CONTRIBUTING.md](CONTRIBUTING.md).

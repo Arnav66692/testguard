@@ -1,5 +1,5 @@
 {
-  "comment": "Copy the hooks block into your project .claude/settings.json. The log_command hook records every Bash command and its status. The detect_gaming hook runs at Stop and checks the diff against the command log. Set CLAUDE_PROJECT_DIR or replace it with an absolute path to the tool directory.",
+  "comment": "Copy tool/ into .claude/testguard/ in the target project. Merge this hooks object into .claude/settings.json. CLAUDE_PROJECT_DIR is the project root.",
   "hooks": {
     "PostToolUse": [
       {
@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/tool/hooks/log_command.py\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/testguard/hooks/log_command.py\""
           }
         ]
       }
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/tool/hooks/log_command.py\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/testguard/hooks/log_command.py\""
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/tool/hooks/detect_gaming.py\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/testguard/hooks/detect_gaming.py\""
           }
         ]
       }
